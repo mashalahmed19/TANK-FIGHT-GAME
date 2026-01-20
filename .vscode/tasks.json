@@ -1,0 +1,45 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Tank Fight Game",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "${file}",
+                "-o",
+                "${fileDirname}\\TankFight.exe",
+                "-static-libgcc",
+                "-static-libstdc++",
+                "-lbgi",
+                "-lgdi32",
+                "-lcomdlg32",
+                "-luuid",
+                "-loleaut32",
+                "-lole32"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Compile Tank Fight Game with WinBGIm"
+        },
+        {
+            "label": "Build and Run",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "g++ ${file} -o ${fileDirname}\\TankFight.exe -static-libgcc -static-libstdc++ -lbgi -lgdi32 -lcomdlg32 -luuid -loleaut32 -lole32 && ${fileDirname}\\TankFight.exe"
+            ],
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Compile and run Tank Fight Game"
+        }
+    ]
+}
