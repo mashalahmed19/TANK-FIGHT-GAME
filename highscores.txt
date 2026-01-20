@@ -11,3 +11,9 @@ Player 1 400
 Player 1 200
 Player 1 200
 Player 1 0
+Mashal 200
+Mashal 0
+Mashal 0
+COMPUTER 200
+COMPUTER 220
+COMPUTER 200

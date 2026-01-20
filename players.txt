@@ -22,3 +22,10 @@ Player 2 0
 Player 1 200
 Player 2 60
 Player 1 0
+Mashal 200
+Nabeel 0
+Mashal 0
+Mashal 0
+Mashal 0
+Mashal 0
+Mashal 30

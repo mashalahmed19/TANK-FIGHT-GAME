@@ -56,9 +56,14 @@ const int MAP_COLS = 30;
 const int CELL_SIZE = 40;
 const int MAX_PLAYERS = 3;
 const int INITIAL_HEALTH = 100;
-const int MAX_HIGHSCORES = 3;
+const int MAX_HIGHSCORES = 10;
 
 // ==================== GLOBAL VARIABLES ====================
+
+// High score system
+char highScoreNames[MAX_HIGHSCORES][50];
+int highScoreValues[MAX_HIGHSCORES];
+int totalHighScores = 0;
 
 // Game state variables
 int gameMode = 0;          // 1=Single, 2=Two Player, 3=Three Player
@@ -370,15 +375,38 @@ void showMainMenu() {
         }
         else if (choice == '4') {
             loadHighScores();
-            // Display high scores (implementation below)
+            // Display high scores
             cleardevice();
             settextstyle(BOLD_FONT, HORIZ_DIR, 3);
             setcolor(YELLOW);
             outtextxy(400, 100, (char*)"HIGH SCORES");
-            setcolor(WHITE);
+            
             settextstyle(DEFAULT_FONT, HORIZ_DIR, 2);
-            outtextxy(400, 250, (char*)"[Feature will show scores from file]");
-            outtextxy(400, 500, (char*)"Press SPACE to return...");
+            if (totalHighScores == 0) {
+                setcolor(WHITE);
+                outtextxy(400, 300, (char*)"No high scores yet!");
+                outtextxy(350, 350, (char*)"Play some games to set records!");
+            } else {
+                setcolor(CYAN);
+                outtextxy(250, 180, (char*)"RANK    PLAYER NAME              SCORE");
+                setcolor(WHITE);
+                
+                for (int i = 0; i < totalHighScores; i++) {
+                    char display[100];
+                    sprintf(display, "%d.      %-25s %d", i+1, highScoreNames[i], highScoreValues[i]);
+                    
+                    // Color code top 3
+                    if (i == 0) setcolor(YELLOW);      // Gold
+                    else if (i == 1) setcolor(LIGHTGRAY);  // Silver
+                    else if (i == 2) setcolor(14);     // Bronze
+                    else setcolor(WHITE);
+                    
+                    outtextxy(250, 220 + i * 35, display);
+                }
+            }
+            
+            setcolor(GREEN);
+            outtextxy(400, 700, (char*)"Press SPACE to return...");
             while (!(GetAsyncKeyState(VK_SPACE) & 0x8000)) { delay(50); }
             delay(200);
         }
@@ -422,11 +450,87 @@ void showMainMenu() {
     Purpose: Get names of players before starting the game
 */
 void getPlayerNames() {
-    // Set default player names (avoiding console input conflicts with graphics)
     int numPlayers = gameMode;
     
+    cleardevice();
+    settextstyle(BOLD_FONT, HORIZ_DIR, 3);
+    setcolor(YELLOW);
+    outtextxy(380, 80, (char*)"ENTER PLAYER NAMES");
+    
+    settextstyle(DEFAULT_FONT, HORIZ_DIR, 2);
+    
+    // Get name for each player
     for (int i = 0; i < numPlayers; i++) {
-        sprintf(playerNames[i], "Player %d", i + 1);
+        cleardevice();
+        settextstyle(BOLD_FONT, HORIZ_DIR, 3);
+        setcolor(YELLOW);
+        outtextxy(380, 80, (char*)"ENTER PLAYER NAMES");
+        
+        settextstyle(DEFAULT_FONT, HORIZ_DIR, 2);
+        setcolor(tankColor[i]);
+        
+        char prompt[100];
+        sprintf(prompt, "Player %d (Press Enter when done):", i + 1);
+        outtextxy(300, 250, prompt);
+        
+        // Input box
+        setcolor(WHITE);
+        rectangle(295, 320, 905, 370);
+        
+        // Get input
+        char input[50] = "";
+        int charCount = 0;
+        bool entering = true;
+        
+        while (entering) {
+            if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
+                if (charCount > 0) entering = false;
+                delay(200);
+            }
+            
+            // Check for letter keys
+            for (int key = 'A'; key <= 'Z'; key++) {
+                if (GetAsyncKeyState(key) & 0x8000 && charCount < 40) {
+                    if (GetAsyncKeyState(VK_SHIFT) & 0x8000) {
+                        input[charCount++] = key;  // Uppercase
+                    } else {
+                        input[charCount++] = key + 32;  // Lowercase
+                    }
+                    input[charCount] = '\0';
+                    delay(150);
+                }
+            }
+            
+            // Space bar
+            if (GetAsyncKeyState(VK_SPACE) & 0x8000 && charCount < 40) {
+                input[charCount++] = ' ';
+                input[charCount] = '\0';
+                delay(150);
+            }
+            
+            // Backspace
+            if (GetAsyncKeyState(VK_BACK) & 0x8000 && charCount > 0) {
+                charCount--;
+                input[charCount] = '\0';
+                delay(150);
+            }
+            
+            // Display current input
+            setcolor(BLACK);
+            setfillstyle(SOLID_FILL, BLACK);
+            bar(300, 325, 900, 365);
+            setcolor(tankColor[i]);
+            outtextxy(310, 335, input);
+            
+            delay(50);
+        }
+        
+        // Save the name
+        if (charCount > 0) {
+            strcpy(playerNames[i], input);
+        } else {
+            sprintf(playerNames[i], "Player%d", i + 1);
+        }
     }
     
     // For single player, set computer name
@@ -434,25 +538,25 @@ void getPlayerNames() {
         strcpy(playerNames[1], "COMPUTER");
     }
     
-    // Show player names on screen
+    // Show player names confirmation
     cleardevice();
     settextstyle(BOLD_FONT, HORIZ_DIR, 3);
     setcolor(YELLOW);
-    outtextxy(450, 200, (char*)"PLAYERS READY");
+    outtextxy(450, 150, (char*)"PLAYERS READY");
     
     settextstyle(DEFAULT_FONT, HORIZ_DIR, 2);
-    setcolor(WHITE);
     
-    for (int i = 0; i < numPlayers; i++) {
+    for (int i = 0; i < (gameMode == 1 ? 2 : numPlayers); i++) {
         char display[100];
         sprintf(display, "%s - Ready!", playerNames[i]);
         setcolor(tankColor[i]);
-        outtextxy(450, 300 + i * 50, display);
+        outtextxy(450, 250 + i * 50, display);
     }
     
     setcolor(CYAN);
-    outtextxy(400, 550, (char*)"Press any key to continue...");
-    getch();
+    outtextxy(350, 550, (char*)"Press SPACE to continue...");
+    while (!(GetAsyncKeyState(VK_SPACE) & 0x8000)) { delay(50); }
+    delay(200);
 }
 
 /*
@@ -561,7 +665,14 @@ void initializeGame() {
         tankAngle[i] = 0;
         tankHealth[i] = INITIAL_HEALTH;
         tankSpeed[i] = 5;  // Balanced speed for smooth gameplay
-        tankAlive[i] = (i < gameMode);  // Only active players are alive
+        
+        // For single player, both player and computer should be alive
+        if (gameMode == 1) {
+            tankAlive[i] = (i < 2);  // Player 1 and Computer (Player 2)
+        } else {
+            tankAlive[i] = (i < gameMode);  // Only active players are alive
+        }
+        
         scores[i] = 0;
         lastFireTime[i] = 0;
         
@@ -626,7 +737,9 @@ void gameLoop() {
         drawPowerups();
         drawBullets();
         
-        for (int i = 0; i < gameMode; i++) {
+        // Draw tanks (in single player, draw both player and computer)
+        int numTanks = (gameMode == 1) ? 2 : gameMode;
+        for (int i = 0; i < numTanks; i++) {
             if (tankAlive[i]) {
                 drawTank(i);
             }
@@ -641,7 +754,8 @@ void gameLoop() {
         // Check win condition
         int alivePlayers = 0;
         int lastAlive = -1;
-        for (int i = 0; i < gameMode; i++) {
+        int numPlayers = (gameMode == 1) ? 2 : gameMode;  // Single player has 2 tanks
+        for (int i = 0; i < numPlayers; i++) {
             if (tankAlive[i]) {
                 alivePlayers++;
                 lastAlive = i;
@@ -839,25 +953,64 @@ void handleComputerAI() {
     if (!tankAlive[1]) return;
     
     int targetPlayer = 0;  // Target Player 1
+    if (!tankAlive[targetPlayer]) return;
     
     // Calculate direction to target
     int dx = tankX[targetPlayer] - tankX[1];
     int dy = tankY[targetPlayer] - tankY[1];
     int distance = getDistance(tankX[1], tankY[1], tankX[targetPlayer], tankY[targetPlayer]);
     
-    if (distance > 100) {
-        // Move towards player
-        int newX = tankX[1] + (dx * tankSpeed[1]) / (distance + 1);
-        int newY = tankY[1] + (dy * tankSpeed[1]) / (distance + 1);
+    // Update angle towards target first
+    updateTankAngle(1, tankX[targetPlayer], tankY[targetPlayer]);
+    
+    // AI behavior based on distance
+    if (distance > 200) {
+        // Far away: Move towards player aggressively
+        int moveSpeed = tankSpeed[1];
+        int newX = tankX[1];
+        int newY = tankY[1];
+        
+        if (abs(dx) > abs(dy)) {
+            newX += (dx > 0) ? moveSpeed : -moveSpeed;
+        } else {
+            newY += (dy > 0) ? moveSpeed : -moveSpeed;
+        }
         
         if (!checkTankMapCollision(newX, newY)) {
             tankX[1] = newX;
             tankY[1] = newY;
+        } else {
+            // If blocked, try perpendicular movement
+            if (abs(dx) > abs(dy)) {
+                newY = tankY[1] + moveSpeed;
+                if (!checkTankMapCollision(tankX[1], newY)) tankY[1] = newY;
+            } else {
+                newX = tankX[1] + moveSpeed;
+                if (!checkTankMapCollision(newX, tankY[1])) tankX[1] = newX;
+            }
+        }
+    } else if (distance > 100) {
+        // Medium range: Strafe and shoot
+        static int strafeCounter = 0;
+        strafeCounter++;
+        
+        if (strafeCounter % 20 < 10) {
+            int newX = tankX[1] + tankSpeed[1];
+            if (!checkTankMapCollision(newX, tankY[1])) tankX[1] = newX;
+        } else {
+            int newY = tankY[1] + tankSpeed[1];
+            if (!checkTankMapCollision(tankX[1], newY)) tankY[1] = newY;
         }
     }
+    // Close range: Just shoot, don't move
     
-    // Update angle towards target
-    updateTankAngle(1, tankX[targetPlayer], tankY[targetPlayer]);
+    // Fire at player (with cooldown)
+    int currentTime = clock();
+    if (currentTime - lastFireTime[1] >= fireDelay) {
+        // Try to shoot
+        fireBullet(1);
+        lastFireTime[1] = currentTime;
+    }
     
     // Fire randomly
     if (rand() % 30 == 0) {
@@ -958,7 +1111,8 @@ bool checkBulletTankCollision() {
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (!bulletActive[i]) continue;
         
-        for (int j = 0; j < gameMode; j++) {
+        int numPlayers = (gameMode == 1) ? 2 : gameMode;  // Single player has 2 tanks
+        for (int j = 0; j < numPlayers; j++) {
             if (!tankAlive[j]) continue;
             if (bulletOwner[i] == j) continue;  // Can't hit yourself
             
@@ -1126,7 +1280,8 @@ void updatePowerupDurations() {
 void drawUI() {
     settextstyle(DEFAULT_FONT, HORIZ_DIR, 2);
     
-    for (int i = 0; i < gameMode; i++) {
+    int numPlayers = (gameMode == 1) ? 2 : gameMode;  // Single player shows both player and computer
+    for (int i = 0; i < numPlayers; i++) {
         if (tankAlive[i]) {
             char info[100];
             sprintf(info, "%s: HP=%d Score=%d", playerNames[i], tankHealth[i], scores[i]);
@@ -1245,11 +1400,45 @@ void saveHighScore() {
     Purpose: Load high scores from file for display
 */
 void loadHighScores() {
+    // Reset high scores
+    totalHighScores = 0;
+    
     // Load from highscores.txt
     ifstream file("highscores.txt");
     if (file.is_open()) {
-        // Read and display (implementation simplified)
+        char name[50];
+        int score;
+        
+        // Read all scores
+        while (file >> name >> score && totalHighScores < MAX_HIGHSCORES) {
+            strcpy(highScoreNames[totalHighScores], name);
+            highScoreValues[totalHighScores] = score;
+            totalHighScores++;
+        }
         file.close();
+        
+        // Sort scores in descending order (bubble sort)
+        for (int i = 0; i < totalHighScores - 1; i++) {
+            for (int j = 0; j < totalHighScores - i - 1; j++) {
+                if (highScoreValues[j] < highScoreValues[j + 1]) {
+                    // Swap scores
+                    int tempScore = highScoreValues[j];
+                    highScoreValues[j] = highScoreValues[j + 1];
+                    highScoreValues[j + 1] = tempScore;
+                    
+                    // Swap names
+                    char tempName[50];
+                    strcpy(tempName, highScoreNames[j]);
+                    strcpy(highScoreNames[j], highScoreNames[j + 1]);
+                    strcpy(highScoreNames[j + 1], tempName);
+                }
+            }
+        }
+        
+        // Keep only top MAX_HIGHSCORES
+        if (totalHighScores > MAX_HIGHSCORES) {
+            totalHighScores = MAX_HIGHSCORES;
+        }
     }
 }
 
