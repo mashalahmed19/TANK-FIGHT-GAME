@@ -1,0 +1,4 @@
+TwoPlayer 2 Map2 Mashal 
+SinglePlayer 1 Map4 COMPUTER
+SinglePlayer 1 Map3 COMPUTER
+ThreePlayer 3 Map2 Mashal

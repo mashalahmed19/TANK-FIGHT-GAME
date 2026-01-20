@@ -56,14 +56,14 @@ const int MAP_COLS = 30;
 const int CELL_SIZE = 40;
 const int MAX_PLAYERS = 3;
 const int INITIAL_HEALTH = 100;
-const int MAX_HIGHSCORES = 10;
+const int MAX_PLAYERS_DB = 100;  // Max players in database
 
 // ==================== GLOBAL VARIABLES ====================
 
-// High score system
-char highScoreNames[MAX_HIGHSCORES][50];
-int highScoreValues[MAX_HIGHSCORES];
-int totalHighScores = 0;
+// Player database system
+char playerNamesDB[MAX_PLAYERS_DB][50];  // All registered players
+int playerHighScores[MAX_PLAYERS_DB];     // Highest score for each player
+int totalPlayersDB = 0;                   // Total players in database
 
 // Game state variables
 int gameMode = 0;          // 1=Single, 2=Two Player, 3=Three Player
@@ -285,8 +285,7 @@ void drawHealthBar(int playerIndex);
 void showGameOver();
 
 // File handling functions
-void saveHighScore();
-void loadHighScores();
+void saveGameHistory();
 void savePlayerData();
 void loadPlayerData();
 
@@ -374,39 +373,45 @@ void showMainMenu() {
             gameLoop();
         }
         else if (choice == '4') {
-            loadHighScores();
-            // Display high scores
+            loadPlayerData();
+            // Display all players data
             cleardevice();
             settextstyle(BOLD_FONT, HORIZ_DIR, 3);
             setcolor(YELLOW);
-            outtextxy(400, 100, (char*)"HIGH SCORES");
+            outtextxy(350, 80, (char*)"REGISTERED PLAYERS");
             
             settextstyle(DEFAULT_FONT, HORIZ_DIR, 2);
-            if (totalHighScores == 0) {
+            if (totalPlayersDB == 0) {
                 setcolor(WHITE);
-                outtextxy(400, 300, (char*)"No high scores yet!");
-                outtextxy(350, 350, (char*)"Play some games to set records!");
+                outtextxy(350, 300, (char*)"No players registered yet!");
+                outtextxy(320, 350, (char*)"Play some games to get started!");
             } else {
                 setcolor(CYAN);
-                outtextxy(250, 180, (char*)"RANK    PLAYER NAME              SCORE");
-                setcolor(WHITE);
+                outtextxy(200, 150, (char*)"#    PLAYER NAME                  HIGHEST SCORE");
                 
-                for (int i = 0; i < totalHighScores; i++) {
+                // Display all players (paginated if needed)
+                int displayCount = (totalPlayersDB > 15) ? 15 : totalPlayersDB;
+                for (int i = 0; i < displayCount; i++) {
                     char display[100];
-                    sprintf(display, "%d.      %-25s %d", i+1, highScoreNames[i], highScoreValues[i]);
+                    sprintf(display, "%-4d %-30s %d", i+1, playerNamesDB[i], playerHighScores[i]);
                     
-                    // Color code top 3
-                    if (i == 0) setcolor(YELLOW);      // Gold
-                    else if (i == 1) setcolor(LIGHTGRAY);  // Silver
-                    else if (i == 2) setcolor(14);     // Bronze
-                    else setcolor(WHITE);
+                    // Alternate colors for readability
+                    if (i % 2 == 0) setcolor(WHITE);
+                    else setcolor(LIGHTGRAY);
                     
-                    outtextxy(250, 220 + i * 35, display);
+                    outtextxy(200, 190 + i * 30, display);
+                }
+                
+                if (totalPlayersDB > 15) {
+                    setcolor(YELLOW);
+                    char moreText[50];
+                    sprintf(moreText, "...and %d more players", totalPlayersDB - 15);
+                    outtextxy(350, 190 + 15 * 30, moreText);
                 }
             }
             
             setcolor(GREEN);
-            outtextxy(400, 700, (char*)"Press SPACE to return...");
+            outtextxy(350, 700, (char*)"Press SPACE to return...");
             while (!(GetAsyncKeyState(VK_SPACE) & 0x8000)) { delay(50); }
             delay(200);
         }
@@ -779,7 +784,7 @@ void gameLoop() {
     // Show game over screen
     if (gameOver) {
         showGameOver();
-        saveHighScore();
+        saveGameHistory();
         savePlayerData();
     }
 }
@@ -1381,93 +1386,119 @@ void drawHealthBar(int playerIndex) {
 // ==================== FILE HANDLING FUNCTIONS ====================
 
 /*
-    Function: saveHighScore
-    Purpose: Save game results to highscores.txt file
+    Function: saveGameHistory
+    Purpose: Save game history to gamehistory.txt file
 */
-void saveHighScore() {
-    // Save to highscores.txt
-    ofstream file("highscores.txt", ios::app);
+void saveGameHistory() {
+    ofstream file("gamehistory.txt", ios::app);
     if (file.is_open()) {
+        // Save game details
+        char modeText[20];
+        if (gameMode == 1) strcpy(modeText, "SinglePlayer");
+        else if (gameMode == 2) strcpy(modeText, "TwoPlayer");
+        else strcpy(modeText, "ThreePlayer");
+        
+        char mapText[20];
+        sprintf(mapText, "Map%d", selectedMap);
+        
+        char winnerText[50];
         if (winner >= 0) {
-            file << playerNames[winner] << " " << scores[winner] << endl;
-        }
-        file.close();
-    }
-}
-
-/*
-    Function: loadHighScores
-    Purpose: Load high scores from file for display
-*/
-void loadHighScores() {
-    // Reset high scores
-    totalHighScores = 0;
-    
-    // Load from highscores.txt
-    ifstream file("highscores.txt");
-    if (file.is_open()) {
-        char name[50];
-        int score;
-        
-        // Read all scores
-        while (file >> name >> score && totalHighScores < MAX_HIGHSCORES) {
-            strcpy(highScoreNames[totalHighScores], name);
-            highScoreValues[totalHighScores] = score;
-            totalHighScores++;
-        }
-        file.close();
-        
-        // Sort scores in descending order (bubble sort)
-        for (int i = 0; i < totalHighScores - 1; i++) {
-            for (int j = 0; j < totalHighScores - i - 1; j++) {
-                if (highScoreValues[j] < highScoreValues[j + 1]) {
-                    // Swap scores
-                    int tempScore = highScoreValues[j];
-                    highScoreValues[j] = highScoreValues[j + 1];
-                    highScoreValues[j + 1] = tempScore;
-                    
-                    // Swap names
-                    char tempName[50];
-                    strcpy(tempName, highScoreNames[j]);
-                    strcpy(highScoreNames[j], highScoreNames[j + 1]);
-                    strcpy(highScoreNames[j + 1], tempName);
-                }
-            }
+            strcpy(winnerText, playerNames[winner]);
+        } else {
+            strcpy(winnerText, "TIE");
         }
         
-        // Keep only top MAX_HIGHSCORES
-        if (totalHighScores > MAX_HIGHSCORES) {
-            totalHighScores = MAX_HIGHSCORES;
-        }
-    }
-}
-
-/*
-    Function: savePlayerData
-    Purpose: Save player statistics to players.txt file
-*/
-void savePlayerData() {
-    // Save to players.txt
-    ofstream file("players.txt", ios::app);
-    if (file.is_open()) {
-        for (int i = 0; i < gameMode; i++) {
-            file << playerNames[i] << " " << scores[i] << endl;
-        }
+        // Format: GameMode Players MapName Winner
+        file << modeText << " " << gameMode << " " << mapText << " " << winnerText << endl;
         file.close();
     }
 }
 
 /*
     Function: loadPlayerData
-    Purpose: Load player data from file
+    Purpose: Load all player data from players.txt file
 */
 void loadPlayerData() {
-    // Load player data from file
+    totalPlayersDB = 0;
+    
     ifstream file("players.txt");
     if (file.is_open()) {
+        char name[50];
+        int score;
+        
+        // Read all players
+        while (file >> name >> score && totalPlayersDB < MAX_PLAYERS_DB) {
+            strcpy(playerNamesDB[totalPlayersDB], name);
+            playerHighScores[totalPlayersDB] = score;
+            totalPlayersDB++;
+        }
+        file.close();
+        
+        // Sort players by highest score (descending)
+        for (int i = 0; i < totalPlayersDB - 1; i++) {
+            for (int j = 0; j < totalPlayersDB - i - 1; j++) {
+                if (playerHighScores[j] < playerHighScores[j + 1]) {
+                    // Swap scores
+                    int tempScore = playerHighScores[j];
+                    playerHighScores[j] = playerHighScores[j + 1];
+                    playerHighScores[j + 1] = tempScore;
+                    
+                    // Swap names
+                    char tempName[50];
+                    strcpy(tempName, playerNamesDB[j]);
+                    strcpy(playerNamesDB[j], playerNamesDB[j + 1]);
+                    strcpy(playerNamesDB[j + 1], tempName);
+                }
+            }
+        }
+    }
+}
+
+/*
+    Function: savePlayerData
+    Purpose: Save/update player statistics to players.txt (no duplicates, highest score only)
+*/
+void savePlayerData() {
+    // First, load existing player data
+    loadPlayerData();
+    
+    // Update or add each player from current game
+    int numPlayers = (gameMode == 1) ? 2 : gameMode;
+    for (int i = 0; i < numPlayers; i++) {
+        // Skip computer player name
+        if (strcmp(playerNames[i], "COMPUTER") == 0) continue;
+        
+        // Check if player already exists
+        bool found = false;
+        for (int j = 0; j < totalPlayersDB; j++) {
+            if (strcmp(playerNamesDB[j], playerNames[i]) == 0) {
+                // Player exists - update if current score is higher
+                if (scores[i] > playerHighScores[j]) {
+                    playerHighScores[j] = scores[i];
+                }
+                found = true;
+                break;
+            }
+        }
+        
+        // If player doesn't exist, add them
+        if (!found && totalPlayersDB < MAX_PLAYERS_DB) {
+            strcpy(playerNamesDB[totalPlayersDB], playerNames[i]);
+            playerHighScores[totalPlayersDB] = scores[i];
+            totalPlayersDB++;
+        }
+    }
+    
+    // Write all players back to file (overwrite)
+    ofstream file("players.txt");
+    if (file.is_open()) {
+        for (int i = 0; i < totalPlayersDB; i++) {
+            file << playerNamesDB[i] << " " << playerHighScores[i] << endl;
+        }
         file.close();
     }
 }
+
 
 // ==================== UTILITY FUNCTIONS ====================
 
