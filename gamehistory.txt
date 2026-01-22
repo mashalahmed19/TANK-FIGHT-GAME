@@ -4,3 +4,5 @@ SinglePlayer 1 Map3 COMPUTER
 ThreePlayer 3 Map2 Mashal
 TwoPlayer 2 Map2 Mashal
 TwoPlayer 2 Map4 Mashal
+TwoPlayer 2 Map4 Kamran
+TwoPlayer 2 Map2 Mashal 

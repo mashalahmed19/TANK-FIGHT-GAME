@@ -1,7 +1,7 @@
 /*
 ================================================================================
     TANK FIGHT GAME - Programming Fundamentals Final Project
-    Created by: Mashal Ahmed
+    Created by: Mashal Ahmed, Nabeel Mansoor & Ayesha Ghauri
     Date: January 2026
     
     Game Description:
@@ -909,9 +909,14 @@ void handlePlayer2Input() {
         if (!checkTankMapCollision(newX, tankY[1])) tankX[1] = newX;
         tankAngle[1] = 0;
     }
+    
+    // Fire with cooldown (no Sleep to avoid blocking other players)
     if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
-        fireBullet(1);
-        Sleep(200);  // Prevent rapid firing
+        int currentTime = clock();
+        if (currentTime - lastFireTime[1] >= fireDelay) {
+            fireBullet(1);
+            lastFireTime[1] = currentTime;
+        }
     }
 }
 
@@ -943,9 +948,14 @@ void handlePlayer3Input() {
         if (!checkTankMapCollision(newX, tankY[2])) tankX[2] = newX;
         tankAngle[2] = 0;
     }
+    
+    // Fire with cooldown (no Sleep to avoid blocking other players)
     if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
-        fireBullet(2);
-        Sleep(200);
+        int currentTime = clock();
+        if (currentTime - lastFireTime[2] >= fireDelay) {
+            fireBullet(2);
+            lastFireTime[2] = currentTime;
+        }
     }
 }
 
